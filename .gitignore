@@ -1,0 +1,6 @@
+model/*
+build/*
+CMakeLists.txt
+_deps.zip
+lib/*
+.vscode/*
