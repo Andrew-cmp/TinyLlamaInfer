@@ -17,12 +17,24 @@ LayerType BaseLayer::layer_type() const { return layer_type_; }
 base::Status BaseLayer::set_weight(int32_t idx, const tensor::Tensor& weight) {
   return base::error::FunctionNotImplement();
 }
-
+base::Status Layer::init() { return base::error::Success(); }
 base::Status BaseLayer::set_weight(int32_t idx, const std::vector<int32_t>& dims,
                                    const void* weight_ptr, base::DeviceType device_type) {
   return base::error::FunctionNotImplement();
 }
-
+base::Status Layer::check_tensor(const tensor::Tensor& tensor, base::DeviceType device_type,
+  base::DataType data_type) const {
+  if (tensor.is_empty()) {
+    return base::error::InvalidArgument("The tensor parameter is empty.");
+  }
+  if (tensor.device_type() != device_type) {
+    return base::error::InvalidArgument("The tensor has a wrong device type.");
+  }
+  if (tensor.data_type() != data_type) {
+    return base::error::InvalidArgument("The tensor has a wrong data type.");
+  }
+  return base::error::Success();
+}
 const std::string& BaseLayer::get_layer_name() const { return layer_name_; }
 
 void BaseLayer::set_layer_name(const std::string& layer_name) { layer_name_ = layer_name; }
@@ -88,7 +100,11 @@ tensor::Tensor& Layer::get_output(int32_t idx) {
   CHECK_LT(idx, outputs_.size());
   return outputs_.at(idx);
 }
-
+const tensor::Tensor& Layer::get_output(int32_t idx) const{
+  CHECK_GE(idx, 0);
+  CHECK_LT(idx, outputs_.size());
+  return outputs_.at(idx);
+}
 base::Status Layer::check() const {
   return base::error::FunctionNotImplement("The check function is not implement yet");
 }
@@ -120,6 +136,9 @@ std::shared_ptr<kernel::CudaConfig> Layer::cuda_config() const { return cuda_con
 size_t Layer::input_size() const { return inputs_.size(); }
 
 size_t Layer::output_size() const { return outputs_.size(); }
+LayerParam::LayerParam(base::DeviceType device_type, LayerType layer_type, bool is_quant_layer,
+  std::string layer_name)
+: Layer(device_type, layer_type, std::move(layer_name)), is_quant_layer_(is_quant_layer) {}
 //weight还有顺序吗
 base::Status LayerParam::set_weight(int32_t idx, const tensor::Tensor& weight) {
   CHECK_GE(idx, 0);
@@ -199,6 +218,8 @@ int32_t LayerParam::get_scale_num() const {
 void LayerParam::reset_weight_size(size_t size) { weights_.resize(size); }
 
 size_t LayerParam::weight_size() const { return weights_.size(); }
+
+base::Status Layer::forward() { return base::error::FunctionNotImplement(""); }
 
 base::Status Layer::forward(const tensor::Tensor& input1, const tensor::Tensor& output1) {
   this->set_input(0, input1);
